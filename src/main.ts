@@ -4,6 +4,7 @@ import { Catalog } from "../src/components/models/Catalog";
 import { Cart } from "../src/components/models/Cart";
 import { Buyer } from "../src/components/models/Buyer";
 import { apiProducts } from "../src/utils/data";
+import { Api } from "../src/components/base/Api";
 import { API_URL } from "../src/utils/constants";
 import { ShopApi } from "../src/components/api/ShopApi";
 
@@ -100,7 +101,8 @@ console.log("Buyer.getData() после clear:", buyer.getData());
 
 console.log("=== ТЕСТ СЛОЯ КОММУНИКАЦИИ ===");
 
-const shopApi = new ShopApi(API_URL);
+const api = new Api(API_URL);
+const shopApi = new ShopApi(api);
 
 shopApi
   .getProducts()

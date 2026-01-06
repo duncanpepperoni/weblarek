@@ -1,11 +1,15 @@
-import { Api } from "../base/Api";
-import { IProductsResponse, IOrderRequest, IOrderResponse } from "../../types";
+import {
+  IApi,
+  IProductsResponse,
+  IOrderRequest,
+  IOrderResponse,
+} from "../../types";
 
 export class ShopApi {
-  private api: Api;
+  private api: IApi;
 
-  constructor(baseUrl: string) {
-    this.api = new Api(baseUrl);
+  constructor(api: IApi) {
+    this.api = api;
   }
 
   getProducts(): Promise<IProductsResponse> {
