@@ -1,12 +1,16 @@
 import { IBuyer, TPayment } from "../../types";
+import type { IEvents } from "../base/Events";
 
 export class Buyer {
   private payment: TPayment | null = null;
   private email = "";
   private phone = "";
   private address = "";
+  private events: IEvents;
 
-  constructor() {}
+  constructor(events: IEvents) {
+    this.events = events;
+  }
 
   setData(data: Partial<IBuyer>): void {
     if (data.payment !== undefined) {
@@ -21,6 +25,8 @@ export class Buyer {
     if (data.address !== undefined) {
       this.address = data.address;
     }
+
+    this.events.emit("buyer:changed", this.getData());
   }
 
   getData(): IBuyer {
@@ -37,6 +43,8 @@ export class Buyer {
     this.email = "";
     this.phone = "";
     this.address = "";
+
+    this.events.emit("buyer:changed", this.getData());
   }
 
   validate(): Partial<Record<keyof IBuyer, string>> {
