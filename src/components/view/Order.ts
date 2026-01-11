@@ -1,22 +1,18 @@
-import { Component } from "../base/Component";
 import type { IEvents } from "../base/Events";
 import type { IBuyer, TPayment } from "../../types";
+import { Form, FormViewState } from "./Form";
 
-interface OrderViewData {
+interface OrderViewData extends FormViewState {
   payment?: TPayment | null;
   address?: string;
-  errors?: string;
-  valid?: boolean;
 }
 
-export class Order extends Component<OrderViewData> {
+export class Order extends Form<OrderViewData> {
   protected events: IEvents;
 
   protected cardButton: HTMLButtonElement;
   protected cashButton: HTMLButtonElement;
   protected addressInput: HTMLInputElement;
-  protected submitButton: HTMLButtonElement;
-  protected errorsElement: HTMLElement;
 
   constructor(container: HTMLElement, events: IEvents) {
     super(container);
@@ -31,34 +27,22 @@ export class Order extends Component<OrderViewData> {
     const addressInput = this.container.querySelector<HTMLInputElement>(
       'input[name="address"]'
     );
-    const submitButton =
-      this.container.querySelector<HTMLButtonElement>(".order__button");
-    const errorsElement =
-      this.container.querySelector<HTMLElement>(".form__errors");
 
-    if (
-      !cardButton ||
-      !cashButton ||
-      !addressInput ||
-      !submitButton ||
-      !errorsElement
-    ) {
+    if (!cardButton || !cashButton || !addressInput) {
       throw new Error("Order: не найдены элементы формы");
     }
 
     this.cardButton = cardButton;
     this.cashButton = cashButton;
     this.addressInput = addressInput;
-    this.submitButton = submitButton;
-    this.errorsElement = errorsElement;
 
     // выбор способа оплаты
     this.cardButton.addEventListener("click", () => {
-      this.setPayment("online");
+      this.onPaymentChange("online");
     });
 
     this.cashButton.addEventListener("click", () => {
-      this.setPayment("cash");
+      this.onPaymentChange("cash");
     });
 
     // ввод адреса
@@ -73,39 +57,15 @@ export class Order extends Component<OrderViewData> {
       event.preventDefault();
       this.events.emit("order:submit", {});
     });
-
-    this.events.on<{
-      valid: boolean;
-      errors: Partial<Record<keyof IBuyer, string>>;
-    }>("order:validate", (data) => {
-      this.valid = data.valid;
-      const messages = Object.values(data.errors).filter(Boolean);
-      this.errors = messages.join(", ");
-    });
   }
 
-  protected setPayment(method: TPayment) {
-    // визуальный активный статус кнопок
-    this.cardButton.classList.toggle("button_alt-active", method === "online");
-    this.cashButton.classList.toggle("button_alt-active", method === "cash");
-
+  protected onPaymentChange(method: TPayment) {
     this.events.emit<Partial<IBuyer>>("order:change", {
       payment: method,
     });
   }
 
-  set errors(value: string | undefined) {
-    this.errorsElement.textContent = value ?? "";
-  }
-
-  set valid(value: boolean | undefined) {
-    this.submitButton.disabled = !value;
-  }
-
-  set address(value: string | undefined) {
-    this.addressInput.value = value ?? "";
-  }
-
+  // визуальное состояние оплаты задаётся извне через сеттер payment
   set payment(value: TPayment | null | undefined) {
     if (!value) {
       this.cardButton.classList.remove("button_alt-active");
@@ -114,5 +74,9 @@ export class Order extends Component<OrderViewData> {
     }
     this.cardButton.classList.toggle("button_alt-active", value === "online");
     this.cashButton.classList.toggle("button_alt-active", value === "cash");
+  }
+
+  set address(value: string | undefined) {
+    this.addressInput.value = value ?? "";
   }
 }

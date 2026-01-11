@@ -5,14 +5,21 @@ export interface CardBasketData extends CardData {
   index: number;
 }
 
-export class CardBasket extends Card {
-  protected events: IEvents;
-  protected indexElement: HTMLElement;
-  protected product: CardBasketData | null = null;
+type RemoveHandler = () => void;
 
-  constructor(container: HTMLElement, events: IEvents) {
+export class CardBasket extends Card {
+  protected indexElement: HTMLElement;
+  protected onRemove: RemoveHandler;
+
+  constructor(
+    container: HTMLElement,
+    events: IEvents,
+    onRemove: RemoveHandler
+  ) {
+    // пробрасываем events в базовый Card
     super(container, events);
-    this.events = events;
+
+    this.onRemove = onRemove;
 
     const indexElement = this.container.querySelector<HTMLElement>(
       ".basket__item-index"
@@ -23,13 +30,13 @@ export class CardBasket extends Card {
     this.indexElement = indexElement;
 
     if (!this.buttonElement) {
-      throw new Error("CardBasket: не найдена кнопка удаления .card__button");
+      throw new Error(
+        "CardBasket: не найдена кнопка удаления .card__button в корзине"
+      );
     }
 
     this.buttonElement.addEventListener("click", () => {
-      if (this.product) {
-        this.events.emit("basket:item-remove", { id: this.product.id });
-      }
+      this.onRemove();
     });
   }
 
@@ -38,8 +45,6 @@ export class CardBasket extends Card {
   }
 
   render(data: CardBasketData): HTMLElement {
-    this.product = data;
-
     this.title = data.title;
     this.price = data.price;
     this.index = data.index;

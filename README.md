@@ -337,7 +337,7 @@ interface IOrderResponse {
 
 Методы:
 
-`render(data?: Partial<T>): HTMLElement` — обновляет состояние экземпляра по данным data и возвращает корневой элемент.
+`render(data?: Partial<T>): HTMLElement` — обновляет состояние экземпляра по данным `data` через соответствующие сеттеры и возвращает корневой элемент.
 
 **Класс Page**
 
@@ -357,9 +357,7 @@ interface IOrderResponse {
 
 Методы:
 
-`render(data?: { counter?: number }): HTMLElement` — обновляет счётчик и возвращает корневой элемент.
-
-`set counter(value: number): void` — устанавливает значение счётчика.
+`set counter(value: number): void` — устанавливает значение счётчика товаров в корзине.
 
 События:
 
@@ -407,9 +405,7 @@ interface IOrderResponse {
 
 Методы:
 
-`render(data?: { catalog?: HTMLElement[] }): HTMLElement` — устанавливает список карточек и возвращает контейнер.
-
-`set catalog(items: HTMLElement[]): void` — заменяет содержимое каталога карточками.
+`set catalog(items: HTMLElement[]): void` — заменяет содержимое каталога переданными карточками товаров.
 
 **Базовый класс карточки Card**
 
@@ -423,31 +419,35 @@ interface IOrderResponse {
 
 `protected events: IEvents` — брокер событий.
 
-`protected titleElement: HTMLElement` — заголовок.
+`protected titleElement: HTMLElement` — заголовок (`.card__title`).
 
-`protected priceElement: HTMLElement` — цена.
+`protected priceElement: HTMLElement` — цена (`.card__price`).
 
-`protected categoryElement: HTMLElement` — категория.
+`protected categoryElement?: HTMLElement` — категория (`.card__category`, может отсутствовать).
 
-`protected imageElement: HTMLImageElement` — изображение.
+`protected imageElement?: HTMLImageElement` — изображение (`.card__image`, может отсутствовать).
 
-`protected buttonElement: HTMLButtonElement` — кнопка действия.
+`protected buttonElement?: HTMLButtonElement` — кнопка действия (`.card__button`, может отсутствовать).
+
+`protected _id: string | null` — идентификатор товара, используется дочерними классами.
 
 Методы:
 
-`render(data?: Partial<CardData>): HTMLElement` — заполняет карточку данными и возвращает корневой элемент.
+`set id(value: string | undefined): void` — сохраняет идентификатор товара.
+
+`get id(): string | null` — возвращает текущий идентификатор.
 
 `set title(value: string): void` — устанавливает название.
 
-`set price(value: number | null): void` — отображает цену или текст при отсутствии цены.
+`set price(value: number | null): void` — отображает цену в формате «N синапсов» или текст «Бесценно» при `null`.
 
-`set category(value: string): void` — устанавливает текст категории и CSS‑модификатор по categoryMap.
+`set category(value: string): void` — устанавливает текст категории и CSS‑модификатор по `categoryMap`.
 
-`set image(value: string): void` — устанавливает URL изображения.
+`set image(value: string): void` — устанавливает URL изображения и alt‑текст по заголовку.
 
-`set buttonLabel(value: string): void` — устанавливает текст кнопки.
+`set buttonLabel(value: string): void` — устанавливает текст кнопки, если она есть.
 
-`set buttonDisabled(value: boolean): void` — включает/отключает кнопку.
+`set buttonDisabled(value: boolean): void` — включает/отключает кнопку, если она есть.
 
 **Класс CardCatalog**
 
@@ -461,13 +461,15 @@ interface IOrderResponse {
 
 Наследует поля `Card`.
 
+`protected product: CardData | null` — сохранённые данные товара для передачи в событие.
+
 Методы:
 
-`render(data?: Partial<CardData>): HTMLElement` — отрисовывает карточку и возвращает элемент.
+`render(data?: Partial<CardData>): HTMLElement` — заполняет карточку переданными данными (id, title, price, category, image), сохраняет их во внутреннем поле `product` и возвращает элемент карточки.
 
 События:
 
-Клик по карточке или по кнопке генерирует `card:select`.
+Клик по карточке генерирует `card:select` с объектом товара `CardData`.
 
 **Класс CardBasket**
 
@@ -475,13 +477,15 @@ interface IOrderResponse {
 
 Конструктор:
 
-`constructor(container: HTMLElement, events: IEvents)` — принимает DOM‑элемент строки корзины и брокер событий.
+`constructor(container: HTMLElement, events: IEvents, onRemove: () => void)` — принимает DOM‑элемент строки корзины, брокер событий и обработчик удаления позиции.
 
 Поля:
 
 Наследует поля `Card`.
 
-`rotected indexElement: HTMLElement` — номер позиции в корзине.
+`protected indexElement: HTMLElement` — номер позиции в корзине.
+
+`protected onRemove: () => void` — колбэк, вызываемый при удалении товара из корзины.
 
 Методы:
 
@@ -491,7 +495,7 @@ interface IOrderResponse {
 
 События:
 
-Клик по кнопке удаления генерирует `card:delete`.
+Клик по кнопке удаления вызывает `onRemove`, который презентер использует для удаления товара из корзины и генерации события `basket:item-remove` с `id` товара.
 
 **Класс CardPreview**
 
@@ -505,23 +509,27 @@ interface IOrderResponse {
 
 Наследует поля `Card`.
 
-`protected descriptionElement: HTMLElement` — описание товара.
+`protected textElement: HTMLElement` — текстовое описание товара.
+
+`protected _inCart: boolean` — флаг, находится ли товар в корзине.
+
+`protected _canPurchase: boolean` — флаг, доступен ли товар к покупке (price !== null).
 
 Методы:
 
-`render(data?: Partial<CardPreviewData>): HTMLElement` — отрисовывает карточку превью и возвращает элемент.
+`render(data: CardData): HTMLElement` — заполняет карточку данными (id, title, price, category, image, description) и возвращает корневой элемент.
 
-`set description(value: string): void` — устанавливает описание.
+`set text(value: string): void` — устанавливает текст описания.
+
+`set inCart(value: boolean): void` — переключает текст кнопки между «В корзину» и «Удалить из корзины» для доступных к покупке товаров.
+
+`set canPurchase(value: boolean): void` — включает/отключает кнопку и устанавливает текст «Недоступно» для товаров без цены.
 
 События:
 
-Клик по кнопке:
+Клик по кнопке генерирует `preview:button-click` с `id` товара, презентер по этому событию либо добавляет товар в корзину, либо удаляет его оттуда.
 
-- генерирует `card:buy`, если товар доступен и не в корзине;
-
-- генерирует `card:delete`, если товар уже в корзине.
-
-Если нет цены, кнопка показывает «Недоступно» и отключена.
+Если товар недоступен к покупке (`canPurchase = false`, цена `null`), кнопка показывает «Недоступно» и отключена.
 
 **Класс Basket**
 
@@ -533,59 +541,47 @@ interface IOrderResponse {
 
 Поля:
 
-`protected events: IEvents` — брокер событий.
+`private events: IEvents` — брокер событий.​
 
-`protected listElement: HTMLElement` — список товаров.
+`private listElement: HTMLUListElement` — список товаров (.basket\_\_list).
 
-`protected totalElement: HTMLElement` — общая сумма.
+`private totalElement: HTMLElement` — элемент с общей суммой (.basket\_\_price).​
 
-`protected emptyElement: HTMLElement` — текст «Корзина пуста».
-
-`protected submitButton: HTMLButtonElement` — кнопка оформления.
+`private orderButton: HTMLButtonElement` — кнопка оформления заказа (.basket\_\_button).
 
 Методы:
 
-`render(data?: Partial<BasketData>): HTMLElement` — обновляет содержимое корзины и возвращает элемент.
-
-`set items(value: HTMLElement[]): void` — устанавливает список карточек товаров.
-
-`set total(value: number): void` — устанавливает сумму.
-
-`set empty(value: boolean): void` — переключает видимость текста «Корзина пуста» и списка.
-
-`set submitDisabled(value: boolean): void` — включает/отключает кнопку «Оформить».
+`render(data: { items: IProduct[]; total: number }): HTMLElement` — пересобирает содержимое корзины: по шаблону #card-basket создаёт CardBasket для каждого товара, устанавливает порядковый номер и цену, обновляет список и общую сумму, затем возвращает корневой элемент корзины.
 
 События:
 
-Клик по `submitButton` генерирует `basket:submit`.
+Клик по `orderButton` генерирует событие `basket:order`.​
+
+Каждый `CardBasket` внутри корзины вызывает переданный обработчик, который эмитит `basket:item-remove` с `id` товара при удалении позиции.
 
 **Базовый класс формы Form<T>**
 
-Базовый класс для форм. Отвечает за `<form>`, кнопку отправки и вывод ошибок.
+Базовый класс для форм. Отвечает за корневой контейнер формы, кнопку отправки и вывод текста ошибок.
 
 Конструктор:
 
-`constructor(container: HTMLElement, events: IEvents)` — принимает DOM‑элемент формы и брокер событий.
+`constructor(container: HTMLElement)` — принимает DOM‑элемент формы.
 
 Поля:
 
-`protected events: IEvents` — брокер событий.
+`protected submitButton: HTMLButtonElement` — кнопка отправки (`button[type="submit"]`).​
 
-`protected form: HTMLFormElement` — форма.
-
-`protected submitButton: HTMLButtonElement` — кнопка отправки.
-
-`protected errorsElement: HTMLElement` — блок ошибок.
+`protected errorsElement: HTMLElement` — блок для вывода ошибок (.form\_\_errors).​
 
 Методы:
 
-`render(data?: Partial<T>): HTMLElement` — заполняет поля и возвращает элемент формы.
+`render(data?: Partial<T>): HTMLElement` — наследуется от Component, позволяет передавать состояние формы и возвращает корневой элемент.
 
-`setSubmitDisabled(value: boolean): void` — включает/отключает кнопку отправки.
+`set valid(value: boolean | undefined)` — включает или отключает кнопку отправки в зависимости от валидности формы.
 
-`setErrors(errors: Partial<Record<keyof T, string>>): void` — отображает ошибки.
+`set errors(message: string | undefined)` — устанавливает текст ошибки в блоке ошибок; при undefined/пустой строке очищает его.
 
-**Класс OrderForm**
+**Класс Order**
 
 Форма первого шага: способ оплаты и адрес доставки.
 
@@ -595,27 +591,29 @@ interface IOrderResponse {
 
 Поля:
 
-Наследует поля `Form<T>`.
+Наследует поля `Form<T>`.​
 
-`protected paymentButtons: HTMLButtonElement[]` — кнопки оплаты.
+`protected cardButton: HTMLButtonElement` — кнопка оплаты «Онлайн».​
+
+`protected cashButton: HTMLButtonElement` — кнопка оплаты «При получении».​
 
 `protected addressInput: HTMLInputElement` — поле адреса.
 
 Методы:
 
-`render(data?: Partial<OrderFormData>): HTMLElement` — заполняет форму и возвращает элемент.
+`render(data?: Partial<T>): HTMLElement` — наследуется от Form, подготавливает форму и возвращает её DOM‑элемент.
 
-`set payment(value: string): void` — отмечает выбранный способ оплаты (модификатор `button_alt-active`).
+`set payment(value: TPayment | null | undefined): void` — отмечает выбранный способ оплаты (модификатор button_alt-active). ​
 
-`set address(value: string): void` — устанавливает адрес.
+`set address(value: string | undefined): void` — устанавливает адрес доставки.
 
 События:
 
-Изменение полей формы генерирует `order:change`.
+Изменение способа оплаты или адреса генерирует `order:change`.​
 
-Отправка валидной формы генерирует `order:submit`.
+Отправка формы генерирует `order:submit`.
 
-**Класс ContactsForm**
+**Класс Contacts**
 
 Форма второго шага: email и телефон.
 
@@ -625,25 +623,25 @@ interface IOrderResponse {
 
 Поля:
 
-Наследует поля `Form<T>`.
+Наследует поля `Form<T>`.​
 
-`protected emailInput: HTMLInputElement` — поле email.
+`protected emailInput: HTMLInputElement` — поле email.​
 
 `protected phoneInput: HTMLInputElement` — поле телефона.
 
 Методы:
 
-`render(data?: Partial<ContactsFormData>): HTMLElement` — заполняет форму и возвращает элемент.
+`render(data?: Partial<T>): HTMLElement` — наследуется от Form, наполняет форму и возвращает её DOM‑элемент.​
 
-`set email(value: string): void` — устанавливает email.
-
-`set phone(value: string): void` — устанавливает телефон.
+`set email(value: string | undefined): void` — устанавливает email.
+​
+`set phone(value: string | undefined): void` — устанавливает телефон.
 
 События:
 
-Изменение полей формы генерирует `contacts:change`.
+Изменение полей формы генерирует `contacts:change`.​
 
-Отправка валидной формы генерирует `contacts:submit`.
+Отправка формы генерирует `contacts:submit`.
 
 **Класс Success**
 
@@ -657,149 +655,149 @@ interface IOrderResponse {
 
 `protected events: IEvents` — брокер событий.
 
-`protected totalElement: HTMLElement` — итоговая сумма.
+`protected descriptionElement: HTMLElement` — элемент с текстом «Списано N синапсов» (.order-success\_\_description).​
 
-`protected closeButton: HTMLButtonElement` — кнопка закрытия.
+`protected closeButton: HTMLButtonElement` — кнопка закрытия (.order-success\_\_close).​
 
 Методы:
 
-`render(data?: { total?: number }): HTMLElement` — отображает сумму и возвращает элемент.
-
-`set total(value: number): void` — устанавливает сумму заказа.
+`render(data: { total: number }): HTMLElement` — устанавливает текст Списано {total} синапсов и возвращает корневой элемент окна.
 
 События:
 
-Клик по `closeButton` генерирует `success:close`.
+Клик по `closeButton` генерирует событие `success:close`
 
 **События приложения**
 
-События делятся на события моделей и событийные сигналы от классов представления. Все события обрабатываются в презентере.
+События делятся на события моделей данных и сигналы от классов представления. Все события обрабатываются в презентере (src/main.ts).
 
 События моделей данных:
 
-- `catalog:changed` — изменился список товаров каталога.
-- `catalog:select` — изменился выбранный товар.
-- `cart:changed` — изменилось содержимое корзины.
-- `buyer:changed` — изменились данные покупателя.
+- `catalog:changed` — изменился список товаров каталога (Catalog получил новые items).
+- `cart:changed` — изменилось содержимое корзины (добавление/удаление/очистка).
 
-События карточек:
+События карточек и превью:
 
-- `card:select` — выбрана карточка товара в каталоге.
-- `card:buy` — нажата кнопка «Купить» в карточке просмотра товара.
-- `card:delete` — товар удалён из корзины.
+- `card:select` — выбрана карточка товара в каталоге (CardCatalog), в обработчик передаётся объект товара.
+- `preview:button-click` — нажата кнопка в карточке детального просмотра (CardPreview), передаётся `{ id }` товара.
 
 События корзины:
 
-- `basket:open` — пользователь открыл корзину.
-- `basket:submit` — пользователь нажал «Оформить» в корзине.
+- `basket:open` — пользователь открыл корзину (клик по кнопке в Page).
+- `basket:item-remove` — удаление товара из корзины (CardBasket внутри Basket вызывает обработчик с `{ id }` товара).
+- `basket:order` — пользователь нажал «Оформить» в корзине.
 
 События форм:
 
-- `order:change` — изменены данные формы заказа (оплата или адрес).
-- `order:submit` — отправлена валидная форма заказа.
-- `contacts:change` — изменены данные формы контактов.
-- `contacts:submit` — отправлена валидная форма контактов.
+- `order:change` — изменены данные формы заказа (способ оплаты или адрес).
+- `order:submit` — отправлена форма заказа (переход к шагу контактов).
+- `contacts:change` — изменены данные формы контактов (email или телефон).
+- `contacts:submit` — отправлена форма контактов (попытка оформить заказ).
 
 События модалки и экрана успеха:
 
-- `modal:close` — модальное окно закрыто пользователем.
+- `modal:close` — модальное окно закрыто пользователем (клик по фону или крестику).
 - `success:close` — окно успешного заказа закрыто пользователем.
 
 ### Слой презентер (Presenter)
 
-В проекте презентер реализован в файле src/main.ts и связывает модели, представления и API через событийный шина EventEmitter.
+Презентер реализован в файле `src/main.ts` и связывает модели, представления и API через событийную шину `EventEmitter`.
 
 **Инициализация**
 
-- Создаются EventEmitter, Page, Modal, Gallery.
-- Инициализируются модели: Catalog, Cart, Buyer.
-- Настраивается ShopApi на основе Api и API_URL, загружается каталог и передаётся в Catalog (catalog.setItems).
+- создаются `EventEmitter`, `Page`, `Modal`, `Gallery`;
+- инициализируются модели: `Catalog`, `Cart`, `Buyer`;
+- создаются `Api` и `ShopApi` c `API_URL`;
+- вызывается `shopApi.getProducts()`, и полученные товары передаются в `Catalog` через `catalog.setItems`, что приводит к событию `catalog:changed`.
 
 **Каталог и превью**
 
-На catalog:changed презентер:
+На `catalog:changed` презентер:
 
-- клонирует шаблон #card-catalog;
-- создаёт CardCatalog для каждого товара;
-- передаёт массив карточек в Gallery через gallery.catalog.
+- берёт массив товаров `items: IProduct[]`;
+- для каждого товара клонирует шаблон `#card-catalog`, создаёт `CardCatalog` и вызывает `render` c `{ id, title, price, category, image }`;
+- передаёт массив DOM‑карточек в `Gallery` через `gallery.catalog`.
 
-CardCatalog при клике шлёт card:select.
+`CardCatalog` при клике эмитит `card:select` с объектом товара. На `card:select` презентер:
 
-На card:select презентер:
-
-- клонирует #card-preview;
-- создаёт CardPreview, заполняет title, price, category, image, description;
-- открывает модалку через modal.open.
+- клонирует шаблон `#card-preview`;
+- создаёт `CardPreview`, передаёт в `render` данные товара (id, title, price, category, image, description);
+- по состоянию корзины (`Cart`) вычисляет, находится ли товар в корзине, и можно ли его купить (`price !== null`), и устанавливает `preview.inCart` и `preview.canPurchase`;
+- открывает модалку `modal.open(previewDom)`.
 
 **Корзина**
 
-На preview:add-to-cart вызывается cart.addItem(product).
+На `basket:open` презентер:
 
-​На basket:item-remove — cart.removeItem(id).
+- клонирует шаблон `#basket`;
+- создаёт `Basket`;
+- передаёт в `basket.render({ items: cart.getItems(), total: cart.getTotal() })`;
+- открывает модальное окно корзины через `modal.open`.
 
-​Модель Cart эмитит cart:changed, на которое презентер:
+`Basket` для каждой позиции создаёт `CardBasket` и передаёт в него обработчик удаления, который эмитит `basket:item-remove` с `id` товара. На `basket:item-remove` презентер вызывает `cart.removeItem(id)`.
 
-- обновляет счётчик в шапке (page.render({ counter: cart.getCount() }));
-- если корзина открыта, пересобирает её через renderBasket().
+`CardPreview` при клике по кнопке эмитит `preview:button-click` с `id` товара. На `preview:button-click` презентер:
 
-На basket:open вызывается renderBasket():
+- ищет товар по `id` в `Catalog`;
+- если товар недоступен к покупке (`price === null`), игнорирует событие;
+- если товар уже есть в корзине — вызывает `cart.removeItem`;
+- иначе — `cart.addItem`.
 
-- клонируется #basket и #card-basket;
-- для каждого товара создаётся CardBasket;
-- заполняются список, сумма и навешивается обработчик на кнопку «Оформить».
+Модель `Cart` при изменениях эмитит `cart:changed`. На `cart:changed` презентер обновляет счётчик в шапке: `page.render({ counter: cart.getCount() })`.
 
-**Заказ (#order)**
+**Заказ (форма #order)**
 
-Кнопка «Оформить» в корзине открывает форму заказа:
+Нажатие кнопки «Оформить» в корзине приводит к событию `basket:order`. На `basket:order` презентер:
 
-- клонируется #order;
-- создаётся Order, заполняются payment и address из Buyer.
+- клонирует шаблон `#order`;
+- создаёт `Order` и сохраняет ссылку в `orderView`;
+- берёт данные покупателя из `Buyer` (`buyer.getData()`), выполняет валидацию (`buyer.validate()`), учитывая только `payment` и `address`;
+- проставляет в `Order` поля `payment`, `address`, а также `valid` и `errors` в зависимости от наличия ошибок;
+- открывает форму заказа в модалке через `modal.open`.
 
-Order эмитит:
+На `order:change` презентер:
 
-- order:change при выборе оплаты и вводе адреса;
-- order:submit при отправке формы.
+- обновляет модель `Buyer` через `buyer.setData`;
+- снова валидирует только `payment` и `address`;
+- если открыт `orderView`, обновляет в нём `payment` (если она изменилась), а также `valid` и `errors`.
 
-На order:change презентер:
+На `order:submit`:
 
-- обновляет Buyer;
-- валидирует только payment и address;
-- шлёт order:validate, чтобы Order включил/выключил «Далее» и показал ошибки.
-
-На order:submit:
-
-- повторно проверяются только payment и address;
-- при успехе открывается форма контактов.
+- выполняется валидация `Buyer` только по полям `payment` и `address`;
+- при наличии ошибок презентер обновляет `orderView.valid = false` и устанавливает `orderView.errors`, не переходя дальше;
+- при отсутствии ошибок открывается форма контактов.
 
 **Контакты и успешный заказ**
 
-При успешном order:submit:
+При успешном `order:submit` презентер:
 
-- клонируется #contacts;
-- создаётся Contacts, заполняются email и phone из Buyer.
+- клонирует шаблон `#contacts`;
+- создаёт `Contacts` и сохраняет ссылку в `contactsView`;
+- берёт данные покупателя (`email`, `phone`) из `Buyer`, выполняет полную валидацию всех полей;
+- заполняет `contactsView.email`, `contactsView.phone`, а также `valid` и `errors`;
+- открывает форму контактов в модалке.
 
-Contacts эмитит:
+На `contacts:change`:
 
-- contacts:change при вводе полей;
-- contacts:submit при отправке.
+- обновляет модель `Buyer` через `buyer.setData`;
+- выполняет полную валидацию всех полей (payment, address, email, phone);
+- если открыт `contactsView`, обновляет `valid` и `errors`.
 
-На contacts:change:
+На `contacts:submit`:
 
-- обновляется Buyer;
-- выполняется полная валидация (payment, address, email, phone);
-- эмитится contacts:validate для управления кнопкой «Оплатить» и ошибками.
+- выполняется полная валидация в `Buyer`;
+- если есть ошибки, презентер обновляет `contactsView.valid = false` и `contactsView.errors` и прерывает оформление;
+- если ошибок нет, формируется `orderRequest` c данными покупателя, суммой `cart.getTotal()` и массивом `items.map(item => item.id)` и вызывается `shopApi.createOrder(orderRequest)`.
 
-На contacts:submit:
+После успешного ответа от API:
 
-если buyer.validate() без ошибок, формируется orderRequest (данные покупателя, total, массив id товаров) и вызывается shopApi.createOrder;
-
-после успешного ответа:
-
-- очищаются Cart и Buyer, счётчик в Page сбрасывается в 0;
-- по шаблону #success показывается модалка «Заказ оформлен» с суммой списанных синапсов и кнопкой закрытия модалки.
+- очищаются `Cart` и `Buyer` (`cart.clear()`, `buyer.clear()`);
+- счётчик в шапке обновляется через `page.render({ counter: 0 })`;
+- по шаблону `#success` создаётся `Success`, вызывается `success.render({ total: result.total })`, и модалка открывается с экраном успешного заказа.
 
 **Управление модалками**
 
-Modal генерирует modal:close, презентер на него просто вызывает modal.close(), обеспечивая единый механизм закрытия для всех модальных окон.
+`Modal` при клике по фону или кнопке закрытия эмитит `modal:close`. Презентер на это событие вызывает `modal.close()`, закрывая текущее модальное окно.  
+Класс `Success` при клике по кнопке «Закрыть» эмитит `success:close`, на которое презентер также закрывает модалку.
 
 ​

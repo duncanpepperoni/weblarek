@@ -1,21 +1,17 @@
-import { Component } from "../base/Component";
 import type { IEvents } from "../base/Events";
 import type { IBuyer } from "../../types";
+import { Form, FormViewState } from "./Form";
 
-interface ContactsViewData {
+interface ContactsViewData extends FormViewState {
   email?: string;
   phone?: string;
-  errors?: string;
-  valid?: boolean;
 }
 
-export class Contacts extends Component<ContactsViewData> {
+export class Contacts extends Form<ContactsViewData> {
   protected events: IEvents;
 
   protected emailInput: HTMLInputElement;
   protected phoneInput: HTMLInputElement;
-  protected submitButton: HTMLButtonElement;
-  protected errorsElement: HTMLElement;
 
   constructor(container: HTMLElement, events: IEvents) {
     super(container);
@@ -27,20 +23,13 @@ export class Contacts extends Component<ContactsViewData> {
     const phoneInput = this.container.querySelector<HTMLInputElement>(
       'input[name="phone"]'
     );
-    const submitButton = this.container.querySelector<HTMLButtonElement>(
-      'button[type="submit"]'
-    );
-    const errorsElement =
-      this.container.querySelector<HTMLElement>(".form__errors");
 
-    if (!emailInput || !phoneInput || !submitButton || !errorsElement) {
+    if (!emailInput || !phoneInput) {
       throw new Error("Contacts: не найдены элементы формы");
     }
 
     this.emailInput = emailInput;
     this.phoneInput = phoneInput;
-    this.submitButton = submitButton;
-    this.errorsElement = errorsElement;
 
     this.emailInput.addEventListener("input", () => {
       this.events.emit<Partial<IBuyer>>("contacts:change", {
@@ -58,23 +47,6 @@ export class Contacts extends Component<ContactsViewData> {
       event.preventDefault();
       this.events.emit("contacts:submit", {});
     });
-
-    this.events.on<{
-      valid: boolean;
-      errors: Partial<Record<keyof IBuyer, string>>;
-    }>("contacts:validate", (data) => {
-      this.valid = data.valid;
-      const messages = Object.values(data.errors).filter(Boolean);
-      this.errors = messages.join(", ");
-    });
-  }
-
-  set errors(value: string | undefined) {
-    this.errorsElement.textContent = value ?? "";
-  }
-
-  set valid(value: boolean | undefined) {
-    this.submitButton.disabled = !value;
   }
 
   set email(value: string | undefined) {

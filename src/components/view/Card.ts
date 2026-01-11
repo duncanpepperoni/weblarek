@@ -19,6 +19,9 @@ export class Card extends Component<CardData> {
   protected imageElement?: HTMLImageElement;
   protected buttonElement?: HTMLButtonElement; // кнопка может отсутствовать
 
+  // добавляем хранение id
+  protected _id: string | null = null;
+
   constructor(container: HTMLElement, events: IEvents) {
     super(container);
     this.events = events;
@@ -44,6 +47,15 @@ export class Card extends Component<CardData> {
     this.categoryElement = categoryElement || undefined;
     this.imageElement = imageElement || undefined;
     this.buttonElement = buttonElement || undefined;
+  }
+
+  // сеттер/геттер для id, чтобы дочерние классы могли его использовать
+  set id(value: string | undefined) {
+    this._id = value ?? null;
+  }
+
+  get id(): string | null {
+    return this._id;
   }
 
   set title(value: string) {
