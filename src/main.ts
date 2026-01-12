@@ -48,6 +48,10 @@ const gallery = new Gallery(galleryContainer);
 
 events.on("modal:close", () => {
   modal.close();
+  // сбрасываем ссылки на view, которые показывались в модалке
+  basketView = null;
+  orderView = null;
+  contactsView = null;
 });
 
 // отдельный обработчик закрытия окна успеха
@@ -65,14 +69,10 @@ const buyer = new Buyer(events);
 // ссылки на активные формы
 let orderView: Order | null = null;
 let contactsView: Contacts | null = null;
+// ссылка на открытую корзину
+let basketView: Basket | null = null;
 
 // ------------------------------- Presenter (START) -------------------------------
-
-// Добавление товара в корзину из превью
-events.on("preview:add-to-cart", (product: IProduct) => {
-  cart.addItem(product);
-  console.log("Cart items:", cart.getItems());
-});
 
 // Удаление товара из корзины
 events.on("basket:item-remove", (payload: { id: string }) => {
@@ -84,6 +84,13 @@ events.on("cart:changed", () => {
   page.render({
     counter: cart.getCount(),
   });
+
+  // если корзина открыта — перерисуем её
+  if (basketView) {
+    const items = cart.getItems();
+    const total = cart.getTotal();
+    basketView.render({ items, total });
+  }
 });
 
 // Презентер: обработка изменения каталога
@@ -162,8 +169,8 @@ events.on("basket:open", () => {
     throw new Error("В шаблоне корзины нет .basket");
   }
 
-  // создаём представление корзины и рендерим его
-  const basketView = new Basket(basketElement, events);
+  // создаём представление корзины и сохраняем ссылку
+  basketView = new Basket(basketElement, events);
 
   const items = cart.getItems();
   const total = cart.getTotal();
@@ -187,6 +194,9 @@ events.on("preview:button-click", (payload: { id: string }) => {
   } else {
     cart.addItem(product);
   }
+
+  // после действия закрываем модалку превью, чтобы UI не расходился с состоянием
+  modal.close();
 });
 
 // Кнопка "Оформить" в корзине
@@ -222,7 +232,8 @@ events.on("basket:order", () => {
     ? Object.values(stepErrors).filter(Boolean).join(", ")
     : "";
 
-  modal.open(orderElement);
+  const orderDom = orderView.render({});
+  modal.open(orderDom);
 });
 
 // Изменения формы заказа -> обновляем Buyer и сразу обновляем Order
@@ -315,7 +326,8 @@ events.on("order:submit", () => {
     ? Object.values(contactsErrors).filter(Boolean).join(", ")
     : "";
 
-  modal.open(contactsElement);
+  const contactsDom = contactsView.render({});
+  modal.open(contactsDom);
 });
 
 events.on("contacts:submit", () => {
